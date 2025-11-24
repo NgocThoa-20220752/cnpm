@@ -1,0 +1,53 @@
+# FastAPI + Uvicorn
+fastapi>=0.104.1,<0.105.0
+uvicorn[standard]>=0.24.0,<0.25.0
+
+# SQLAlchemy + MySQL driver an toàn
+sqlalchemy>=2.0.23,<2.1.0
+mysqlclient>=2.2.7,<3.0.0
+
+# Cryptography an toàn
+cryptography>=46.0.3,<47.0.0
+
+# JWT (thay Authlib)
+PyJWT>=2.9.0,<3.0.0
+
+# Bcrypt password hashing
+passlib[bcrypt]==1.7.4
+
+# Multipart / Form
+python-multipart>=0.0.10
+
+# Email validation
+email-validator==2.1.0
+
+# Pydantic / settings
+pydantic>=2.5.0,<3.0.0
+pydantic-settings>=2.1.0
+
+# Env / Config
+python-dotenv==1.0.0
+alembic>=1.13.0,<1.14.0
+
+# Redis + Celery
+redis==5.0.1
+celery==5.3.4
+
+# Testing
+pytest>=7.4.3,<8.0.0
+pytest-asyncio>=0.21.1,<0.22.0
+
+# HTTP client
+httpx==0.25.2
+
+# Pillow (đã vá CVE)
+pillow>=10.3.0,<11.0.0
+
+# OpenAI + Async IO
+openai==1.3.7
+aiofiles==23.2.1
+
+# AWS + Stripe
+boto3==1.29.7
+stripe==7.8.0
+
