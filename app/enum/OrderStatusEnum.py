@@ -1,10 +1,10 @@
 from enum import Enum
 
 class OrderStatusEnum(str, Enum):
-    PENDING = "PENDING"
-    PROCESSING = "PROCESSING"
-    SHIPPED = "SHIPPED"
-    DELIVERED = "DELIVERED"
-    CANCELED = "CANCELED"
-    RETURNED = "RETURNED"
-    REFUNDED = "REFUNDED"
+    PENDING = "chờ xác nhận"
+    CONFIRMED = "đã xác nhận"
+    PROCESSING = "đang xử lý"
+    SHIPPED = "đã giao hàng"
+    DELIVERED = "đã nhận hàng"
+    CANCELLED = "đã hủy"
+    REFUNDED = "đã hoàn tiền"
