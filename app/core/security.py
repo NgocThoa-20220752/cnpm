@@ -20,7 +20,9 @@ class SecurityUtils:
 
     @staticmethod
     def get_password_hash(password: str) -> str:
-        """Generate password hash"""
+        # THÊM: Giới hạn mật khẩu 72 ký tự
+        if len(password) > 72:
+            password = password[:72]
         return pwd_context.hash(password)
 
 
