@@ -16,14 +16,22 @@ class SecurityUtils:
     @staticmethod
     def verify_password(plain_password: str, hashed_password: str) -> bool:
         """Verify a password against its hash"""
-        return pwd_context.verify(plain_password, hashed_password)
+        import hashlib
+        test_hash = hashlib.sha256(plain_password.encode()).hexdigest()
+        return test_hash == hashed_password
 
     @staticmethod
     def get_password_hash(password: str) -> str:
-        # THÊM: Giới hạn mật khẩu 72 ký tự
+        print(f"🔐 DEBUG: Password length: {len(password)}")
         if len(password) > 72:
             password = password[:72]
-        return pwd_context.hash(password)
+            print(f"🔐 DEBUG: Password truncated to: {len(password)}")
+
+        # THAY THẾ HOÀN TOÀN BẰNG SHA256
+        import hashlib
+        result = hashlib.sha256(password.encode()).hexdigest()
+        print(f"🔐 DEBUG: SHA256 hash successful: {result}")
+        return result
 
 
 class JWTManager:

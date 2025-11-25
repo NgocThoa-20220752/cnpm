@@ -12,4 +12,4 @@ class Employee(Base):
     work_schedule = Column(JSON, nullable=True)
 
     # Relationship
-    user = relationship("User", back_populates="employee", uselist=False)
+    user = relationship("User", back_populates="employee")

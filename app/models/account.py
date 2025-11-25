@@ -13,5 +13,5 @@ class Account(BaseModel):
     status = Column(SQLEnum(AccountStatusEnum), default=AccountStatusEnum.ACTIVE, nullable=False)
     role = Column(SQLEnum(RoleEnum), default=RoleEnum.CUSTOMER, nullable=False)
 
-    # Relationship
+    # relationship
     user = relationship("User", back_populates="account", uselist=False)

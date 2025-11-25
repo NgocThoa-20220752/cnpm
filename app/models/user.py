@@ -3,6 +3,7 @@ from sqlalchemy.orm import relationship
 from app.models.base import BaseModel
 from app.enum import GenderEnum
 
+
 class User(BaseModel):
     __tablename__ = "users"
 
@@ -13,7 +14,7 @@ class User(BaseModel):
     email = Column(String(100), unique=True, nullable=False, index=True)
     avatar = Column(Text, nullable=True)
 
-    # Relationships
-    account = relationship("Account", back_populates="user", uselist=False, cascade="all, delete-orphan")
-    customer = relationship("Customer", back_populates="user", uselist=False, cascade="all, delete-orphan")
-    employee = relationship("Employee", back_populates="user", uselist=False, cascade="all, delete-orphan")
+    # relationship
+    account = relationship("Account", back_populates="user", uselist=False)
+    customer = relationship("Customer", back_populates="user", uselist=False)
+    employee = relationship("Employee", back_populates="user", uselist=False)
