@@ -1,13 +1,9 @@
 from datetime import datetime, timedelta, timezone
 from typing import Optional, Dict, Any
 import jwt
-from passlib.context import CryptContext
 from app.core.config import get_settings
 
 settings = get_settings()
-
-# Password hashing context
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
 class SecurityUtils:
@@ -17,20 +13,19 @@ class SecurityUtils:
     def verify_password(plain_password: str, hashed_password: str) -> bool:
         """Verify a password against its hash"""
         import hashlib
-        test_hash = hashlib.sha256(plain_password.encode()).hexdigest()
-        return test_hash == hashed_password
+        # Tính SHA256 của password nhập vào
+        input_hash = hashlib.sha256(plain_password.encode()).hexdigest()
+        print(f"🔐 VERIFY: Input hash: {input_hash}")
+        print(f"🔐 VERIFY: DB hash:    {hashed_password}")
+        print(f"🔐 VERIFY: Match:      {input_hash == hashed_password}")
+        return input_hash == hashed_password
 
     @staticmethod
     def get_password_hash(password: str) -> str:
-        print(f"🔐 DEBUG: Password length: {len(password)}")
-        if len(password) > 72:
-            password = password[:72]
-            print(f"🔐 DEBUG: Password truncated to: {len(password)}")
-
-        # THAY THẾ HOÀN TOÀN BẰNG SHA256
+        """Hash a password using SHA256"""
         import hashlib
         result = hashlib.sha256(password.encode()).hexdigest()
-        print(f"🔐 DEBUG: SHA256 hash successful: {result}")
+        print(f"🔐 HASH: Password '{password}' -> {result}")
         return result
 
 
