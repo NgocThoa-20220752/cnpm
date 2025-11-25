@@ -1,5 +1,4 @@
-from typing import Optional
-from fastapi import Depends, Header
+from fastapi import Depends
 from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.core.security import JWTManager
@@ -8,51 +7,71 @@ from app.models.account import Account
 from app.models.user import User
 from app.enum import RoleEnum, AccountStatusEnum
 from typing import Any
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+
+security = HTTPBearer()
 
 
 def get_current_user(
-        authorization: Optional[str] = Header(None),
+        credentials: HTTPAuthorizationCredentials = Depends(security),
         db: Session = Depends(get_db)
 ) -> Any:
     """
     Dependency to get current authenticated user
     """
-    if not authorization:
+    # HTTPBearer đã xử lý scheme "Bearer" rồi, chỉ cần lấy token
+    token = credentials.credentials
+
+    if not token:
+        print("❌ DEPENDENCY DEBUG: Missing token")
         raise UnauthorizedException("Missing authorization header")
 
-    try:
-        scheme, token = authorization.split()
-        if scheme.lower() != "bearer":
-            raise UnauthorizedException("Invalid authentication scheme")
-    except ValueError:
-        raise UnauthorizedException("Invalid authorization header format")
+    print(f"✅ DEPENDENCY DEBUG: Token received: {token[:50]}...")
 
     payload = JWTManager.decode_token(token)
     if not payload:
+        print("❌ DEPENDENCY DEBUG: Invalid or expired token")
         raise UnauthorizedException("Invalid or expired token")
 
     user_id = payload.get("user_id")
     if not user_id:
+        print("❌ DEPENDENCY DEBUG: Invalid token payload - no user_id")
         raise UnauthorizedException("Invalid token payload")
 
-    user_id_int = int(user_id)
+    try:
+        user_id_int = int(user_id)
+    except ValueError:
+        print("❌ DEPENDENCY DEBUG: Invalid user_id format")
+        raise UnauthorizedException("Invalid user_id format")
 
+    print(f"✅ DEPENDENCY DEBUG: Looking for user_id: {user_id_int}")
+
+    # Tìm account trước
     account = db.query(Account).filter_by(user_id=user_id_int).first()
     if not account:
+        print(f"❌ DEPENDENCY DEBUG: Account not found for user_id: {user_id_int}")
         raise UnauthorizedException("User not found")
+
+    # THÊM DEBUG ACCOUNT STATUS
+    print(f"🔍 DEPENDENCY DEBUG: Account status: {account.status}")
 
     if account.status == AccountStatusEnum.LOCKED:
+        print(f"❌ DEPENDENCY DEBUG: Account locked for user_id: {user_id_int}")
         raise AccountLockedException("Your account has been locked")
 
+    # Tìm user
     user = db.query(User).filter_by(id=user_id_int).first()
     if not user:
+        print(f"❌ DEPENDENCY DEBUG: User not found for user_id: {user_id_int}")
         raise UnauthorizedException("User not found")
+
+    print(f"✅ DEPENDENCY DEBUG: Authentication successful for user_id: {user.id}")
+    print(f"✅ DEPENDENCY DEBUG: User role: {account.role}")
 
     # Attach account info to user object for easy access
     user.account_info = account
 
     return user
-
 
 def get_current_customer(
         current_user: User = Depends(get_current_user)
