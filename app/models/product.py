@@ -1,5 +1,6 @@
-from sqlalchemy import Column, Integer, String, Text, DECIMAL, ForeignKey, Boolean, JSON
+from sqlalchemy import Column, Integer, String, Text, DECIMAL, ForeignKey, Boolean, JSON, DateTime
 from sqlalchemy.orm import relationship
+from datetime import datetime, timezone
 from app.models.base import BaseModel
 
 
@@ -12,7 +13,9 @@ class Category(BaseModel):
     parent_id = Column(Integer, ForeignKey("categories.id", ondelete="SET NULL"), nullable=True)
     description = Column(Text, nullable=True)
     display_order = Column(Integer, default=0)
-
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc),
+                        onupdate=lambda: datetime.now(timezone.utc))
     # Relationships
     parent = relationship("Category", remote_side="Category.id", backref="children")
     products = relationship("Product", back_populates="category")
