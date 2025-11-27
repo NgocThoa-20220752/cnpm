@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from app.core.config import get_settings
 from app.core.database import init_db
-from app.api.v1 import auth, users # ,products, categories, cart, order, ai_consultation
+from app.api.v1 import auth, users, products,categories, cart #, order, ai_consultation
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator
 import time
@@ -77,9 +77,9 @@ app.mount("/uploads", StaticFiles(directory=settings.UPLOAD_DIR), name="uploads"
 # Include routers
 app.include_router(auth.router, prefix="/api/v1/auth", tags=["Authentication"])
 app.include_router(users.router, prefix="/api/v1/users", tags=["Users"])
-# app.include_router(products.router, prefix="/api/v1/products", tags=["Products"])
-# app.include_router(categories.router, prefix="/api/v1/categories", tags=["Categories"])
-# app.include_router(cart.router, prefix="/api/v1/cart", tags=["Cart"])
+app.include_router(products.router, prefix="/api/v1/products", tags=["Products"])
+app.include_router(categories.router, prefix="/api/v1/categories", tags=["Categories"])
+app.include_router(cart.router, prefix="/api/v1/cart", tags=["Cart"])
 # app.include_router(order.router, prefix="/api/v1/orders", tags=["Orders"])
 # app.include_router(ai_consultation.router, prefix="/api/v1/ai", tags=["AI Consultation"])
 
