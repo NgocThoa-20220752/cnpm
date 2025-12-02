@@ -5,6 +5,7 @@ from typing import List, Optional
 
 from app.Dependencies import get_admin_or_employee
 from app.core.database import get_db
+from app.enum import ProductStatusEnum
 from app.functions.file_utils import FileUtils
 from app.schemas.request.product_req import (
     CreateProductRequest, UpdateProductRequest,
@@ -351,11 +352,36 @@ async def update_packaging_type(
 
 @router.delete("/packaging/{packaging_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_packaging_type(
-        packaging_id: int,
-        _current_user: User = Depends(get_admin_or_employee),
-        db: Session = Depends(get_db)
+    packaging_id: int,
+    _current_user: User = Depends(get_admin_or_employee),
+    db: Session = Depends(get_db)
 ):
-    """Delete packaging type (Admin/Employee only)"""
+    """Xóa loại bao bì (Chỉ Admin/Employee)"""
     service = ProductService(db)
     service.delete_packaging_type(packaging_id)
-    return None
+
+# Thêm endpoint này sau các endpoint sản phẩm
+
+@router.patch("/{product_id}/status", response_model=ProductResponse)
+async def update_product_status(
+    product_id: int,
+    new_status: ProductStatusEnum,
+    _current_user: User = Depends(get_admin_or_employee),
+    db: Session = Depends(get_db)
+):
+    """Update product status (Admin/Employee only)"""
+    service = ProductService(db)
+    return service.update_product_status(product_id, new_status)
+
+
+@router.get("/active/list", response_model=ProductListResponse)
+async def get_active_products(
+        page: int = Query(1, ge=1),
+        limit: int = Query(20, ge=1, le=100),
+        search: Optional[str] = None,
+        category_id: Optional[int] = None,
+        db: Session = Depends(get_db)
+):
+    """Get only active products (for customers)"""
+    service = ProductService(db)
+    return service.get_active_products(page, limit, search, category_id)

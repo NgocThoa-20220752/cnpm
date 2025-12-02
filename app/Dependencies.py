@@ -9,6 +9,8 @@ from app.enum import RoleEnum, AccountStatusEnum
 from typing import Any
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
+from app.services.order_service import OrderService
+
 security = HTTPBearer()
 
 
@@ -115,3 +117,7 @@ def get_admin_or_employee(
     if current_user.account_info.role not in [RoleEnum.ADMIN, RoleEnum.EMPLOYEE]:
         raise ForbiddenException("Admin or Employee access required")
     return current_user
+
+def get_order_service(db: Session = Depends(get_db)) -> OrderService:
+    """Dependency for OrderService"""
+    return OrderService(db)

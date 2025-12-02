@@ -1,6 +1,8 @@
-from sqlalchemy import Column, Integer, String, Text, DECIMAL, ForeignKey, Boolean, JSON, DateTime
+from sqlalchemy import Column, Integer, String, Text, DECIMAL, ForeignKey, Boolean, JSON, DateTime, Enum as SQLEnum
 from sqlalchemy.orm import relationship
 from datetime import datetime, timezone
+
+from app.enum import ProductStatusEnum
 from app.models.base import BaseModel
 
 
@@ -29,6 +31,8 @@ class Product(BaseModel):
     slug = Column(String(255), unique=True, nullable=False, index=True)
     category_id = Column(Integer, ForeignKey("categories.id", ondelete="SET NULL"), nullable=True)
     price = Column(DECIMAL(12, 2), nullable=False)
+    # Thêm trạng thái sản phẩm
+    status = Column(SQLEnum(ProductStatusEnum), default=ProductStatusEnum.ACTIVE, nullable=False)
 
     # Relationships
     category = relationship("Category", back_populates="products")
@@ -51,6 +55,10 @@ class ProductDetail(BaseModel):
     usage = Column(JSON, nullable=True)
     benefits = Column(JSON, nullable=True)
     storage = Column(Text, nullable=True)
+    # THÊM SỐ LƯỢNG VÀO BẢNG CHI TIẾT SẢN PHẨM
+    stock = Column(Integer, default=0)
+    # Thêm SKU để dễ quản lý
+    sku = Column(String(100), unique=True, index=True)
 
     # Relationships
     product = relationship("Product", back_populates="product_details")
@@ -80,7 +88,6 @@ class ProductColor(BaseModel):
 
     name = Column(String(100), nullable=False)
     code = Column(String(20), nullable=True)
-    stock = Column(Integer, default=0)
 
     # Relationships
     product_details = relationship("ProductDetail", back_populates="color")

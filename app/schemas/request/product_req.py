@@ -2,17 +2,22 @@ from pydantic import BaseModel, Field
 from typing import Optional
 from decimal import Decimal
 
+from app.enum import ProductStatusEnum
+
+
 class CreateProductRequest(BaseModel):
     name: str = Field(..., min_length=1, max_length=200)
     slug: str = Field(..., max_length=255)
     category_id: Optional[int] = None
     price: Decimal = Field(..., gt=0)
+    status: ProductStatusEnum = ProductStatusEnum.ACTIVE  # Thêm trạng thái
 
 class UpdateProductRequest(BaseModel):
     name: Optional[str] = Field(None, min_length=1, max_length=200)
     slug: Optional[str] = Field(None, max_length=255)
     category_id: Optional[int] = None
     price: Optional[Decimal] = Field(None, gt=0)
+    status: Optional[ProductStatusEnum] = None  # Thêm trạng thái
 
 class CreateProductDetailRequest(BaseModel):
     product_id: int
@@ -24,6 +29,8 @@ class CreateProductDetailRequest(BaseModel):
     usage: Optional[dict] = None
     benefits: Optional[dict] = None
     storage: Optional[str] = None
+    stock: int = Field(default=0, ge=0)  # Thêm stock
+    sku: Optional[str] = Field(None, max_length=100)  # Thêm sku
 
 class UpdateProductDetailRequest(BaseModel):
     packaging_type_id: Optional[int] = None
@@ -34,6 +41,8 @@ class UpdateProductDetailRequest(BaseModel):
     usage: Optional[dict] = None
     benefits: Optional[dict] = None
     storage: Optional[str] = None
+    stock: Optional[int] = Field(None, ge=0)  # Thêm stock
+    sku: Optional[str] = Field(None, max_length=100)  # Thêm sku
 
 class CreateProductImageRequest(BaseModel):
     product_id: int
@@ -45,7 +54,6 @@ class CreateProductImageRequest(BaseModel):
 class CreateProductColorRequest(BaseModel):
     name: str = Field(..., max_length=100)
     code: Optional[str] = Field(None, max_length=20)
-    stock: int = Field(default=0, ge=0)
 
 class CreateProductSizeRequest(BaseModel):
     name: str = Field(..., max_length=20)
