@@ -63,6 +63,7 @@ async def add_to_cart(
             detail=str(e)
         )
     except InsufficientStockException as e:
+        # GIỮ NGUYÊN 400 hoặc đổi thành 409 tùy bạn
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e)

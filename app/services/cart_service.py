@@ -1,6 +1,7 @@
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
+from sqlalchemy import func
 from app.models.cart import Cart, CartItem
-from app.models.product import Product
+from app.models.product import Product, ProductDetail
 from app.schemas.request.cart_req import AddToCartRequest, UpdateCartItemRequest
 from app.exceptions import NotFoundException, InsufficientStockException
 from decimal import Decimal
@@ -11,80 +12,124 @@ class CartService:
         self.db = db
 
     def get_or_create_cart(self, customer_id: int) -> Cart:
+        """Lấy hoặc tạo giỏ hàng"""
         cart = self.db.query(Cart).filter_by(customer_id=customer_id).first()
-
         if cart:
             return cart
 
         cart = Cart(customer_id=customer_id)
         self.db.add(cart)
-        self.db.flush()  # đảm bảo cart.id được sinh nhưng chưa commit
+        self.db.flush()
         self.db.refresh(cart)
         return cart
 
     def get_cart(self, customer_id: int):
-        """Get customer's cart with items"""
-        cart = self.db.query(Cart).filter_by(customer_id=customer_id).first()
+        """Lấy thông tin giỏ hàng"""
+        cart = self.get_or_create_cart(customer_id)
 
-        if not cart:
-            return {
-                "id": None,
-                "customer_id": customer_id,
-                "cart_items": [],
-                "total_items": 0,
-                "total_amount": Decimal('0'),
-                "created_at": None,
-                "updated_at": None
-            }
+        # Lấy items với product info
+        items = self.db.query(CartItem).filter_by(cart_id=cart.id).options(
+            joinedload(CartItem.product)
+        ).all()
 
-        # Calculate totals
+        # Tính toán
+        cart_items = []
         total_items = 0
         total_amount = Decimal('0')
-        cart_items_with_subtotal = []
 
-        for item in cart.cart_items:
-            total_items += item.quantity
+        for item in items:
+            # Tính subtotal
             subtotal = item.product.price * item.quantity
-            total_amount += subtotal
 
-            # Tạo cart item với subtotal
-            cart_item_data = {
+            # Lấy hình ảnh chính
+            main_image = None
+            if hasattr(item.product, 'images') and item.product.images:
+                for img in item.product.images:
+                    if img.is_main:
+                        main_image = img.image_url
+                        break
+
+            # Lấy tổng stock từ tất cả variants
+            total_stock = self.db.query(ProductDetail).filter_by(
+                product_id=item.product_id
+            ).with_entities(
+                func.sum(ProductDetail.stock)
+            ).scalar() or 0
+
+            cart_items.append({
                 "id": item.id,
                 "product_id": item.product_id,
                 "quantity": item.quantity,
-                "product": item.product,
+                "product": {
+                    "id": item.product.id,
+                    "name": item.product.name,
+                    "slug": item.product.slug,
+                    "price": item.product.price,
+                    "image_url": main_image,
+                    "stock": total_stock,
+                    "is_available": total_stock > 0
+                },
                 "subtotal": subtotal
-            }
-            cart_items_with_subtotal.append(cart_item_data)
+            })
+
+            total_items += item.quantity
+            total_amount += subtotal
 
         return {
             "id": cart.id,
             "customer_id": cart.customer_id,
-            "cart_items": cart_items_with_subtotal,  # DÙNG list mới có subtotal
+            "cart_items": cart_items,
             "total_items": total_items,
             "total_amount": total_amount,
             "created_at": cart.created_at,
-            "updated_at": cart.updated_at  # THÊM updated_at
+            "updated_at": cart.updated_at
         }
 
     def add_to_cart(self, customer_id: int, request: AddToCartRequest):
+        """Thêm sản phẩm vào giỏ hàng"""
         try:
             cart = self.get_or_create_cart(customer_id)
 
-            if request.quantity <= 0:
-                raise ValueError("Quantity must be greater than 0")
-
+            # Kiểm tra sản phẩm tồn tại
             product = self.db.query(Product).filter_by(id=request.product_id).first()
             if not product:
                 raise NotFoundException("Product not found")
 
+            # Kiểm tra số lượng
+            if request.quantity <= 0:
+                raise ValueError("Quantity must be greater than 0")
+
+            # Kiểm tra tồn kho (tổng stock của tất cả variants)
+            total_stock = self.db.query(ProductDetail).filter_by(
+                product_id=request.product_id
+            ).with_entities(
+                func.sum(ProductDetail.stock)
+            ).scalar() or 0
+
+            # Kiểm tra item đã có trong giỏ chưa
             cart_item = self.db.query(CartItem).filter_by(
-                cart_id=cart.id, product_id=request.product_id
+                cart_id=cart.id,
+                product_id=request.product_id
             ).first()
 
             if cart_item:
-                cart_item.quantity += request.quantity
+                # Nếu đã có, cộng thêm số lượng
+                new_quantity = cart_item.quantity + request.quantity
+
+                # Kiểm tra stock
+                if total_stock < new_quantity:
+                    raise InsufficientStockException(
+                        f"Insufficient stock. Available: {total_stock}"
+                    )
+
+                cart_item.quantity = new_quantity
             else:
+                # Kiểm tra stock cho item mới
+                if total_stock < request.quantity:
+                    raise InsufficientStockException(
+                        f"Insufficient stock. Available: {total_stock}"
+                    )
+
                 cart_item = CartItem(
                     cart_id=cart.id,
                     product_id=request.product_id,
@@ -100,10 +145,11 @@ class CartService:
             raise
 
     def update_cart_item(self, customer_id: int, cart_item_id: int, request: UpdateCartItemRequest):
-        """Update cart item quantity"""
+        """Cập nhật số lượng sản phẩm"""
         try:
             cart = self.get_or_create_cart(customer_id)
 
+            # Tìm cart item
             cart_item = self.db.query(CartItem).filter_by(
                 id=cart_item_id,
                 cart_id=cart.id
@@ -112,9 +158,22 @@ class CartService:
             if not cart_item:
                 raise NotFoundException("Cart item not found")
 
-            # Validate quantity
+            # Kiểm tra số lượng
             if request.quantity <= 0:
                 raise ValueError("Quantity must be greater than 0")
+
+            # Kiểm tra tồn kho
+            total_stock = self.db.query(ProductDetail).filter_by(
+                product_id=cart_item.product_id
+            ).with_entities(
+                func.sum(ProductDetail.stock)
+            ).scalar() or 0
+
+            if total_stock < request.quantity:
+                raise InsufficientStockException(
+                    f"Insufficient stock. Available: {total_stock}"
+                )
+
             cart_item.quantity = request.quantity
             self.db.commit()
 
@@ -125,10 +184,15 @@ class CartService:
             raise
 
     def remove_from_cart(self, customer_id: int, cart_item_id: int):
+        """Xóa sản phẩm khỏi giỏ hàng"""
         try:
             cart = self.get_or_create_cart(customer_id)
 
-            cart_item = self.db.query(CartItem).filter_by(id=cart_item_id, cart_id=cart.id).first()
+            cart_item = self.db.query(CartItem).filter_by(
+                id=cart_item_id,
+                cart_id=cart.id
+            ).first()
+
             if not cart_item:
                 raise NotFoundException("Cart item not found")
 
@@ -142,6 +206,7 @@ class CartService:
             raise
 
     def clear_cart(self, customer_id: int):
+        """Xóa toàn bộ giỏ hàng"""
         try:
             cart = self.get_or_create_cart(customer_id)
 

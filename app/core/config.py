@@ -41,9 +41,13 @@ class Settings:
     MOMO_PARTNER_CODE: str = os.getenv("MOMO_PARTNER_CODE", "")
     MOMO_ACCESS_KEY: str = os.getenv("MOMO_ACCESS_KEY", "")
     MOMO_SECRET_KEY: str = os.getenv("MOMO_SECRET_KEY", "")
+    MOMO_REDIRECT_URL: str = os.getenv("MOMO_REDIRECT_URL",
+                                       "http://localhost:8000/api/v1/payments/momo/callback")  # THÊM DÒNG NÀY
     VNP_TMN_CODE: str = os.getenv("VNP_TMN_CODE", "")
     VNP_HASH_SECRET: str = os.getenv("VNP_HASH_SECRET", "")
     VNP_URL: str = os.getenv("VNP_URL", "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html")
+    VNP_RETURN_URL: str = os.getenv("VNP_RETURN_URL",
+                                    "http://localhost:8000/api/v1/payments/vnpay/callback")  # THÊM DÒNG NÀY
 
     # File Upload
     UPLOAD_DIR: str = os.getenv("UPLOAD_DIR", "uploads")
