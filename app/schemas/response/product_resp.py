@@ -52,8 +52,10 @@ class ProductDetailResponse(BaseModel):
     packaging_type: Optional[PackagingTypeResponse]
     color: Optional[ProductColorResponse]
     size: Optional[ProductSizeResponse]
-    stock: int = 0  # Thêm stock vào response
-    sku: Optional[str] = None  # Thêm sku vào response
+    # THÊM price vào đây ↓ (vì price nằm ở product_details)
+    price: Optional[Decimal] = None
+    stock: int = 0
+    sku: Optional[str] = None
     created_at: datetime
     updated_at: datetime
 
@@ -74,9 +76,14 @@ class ProductResponse(BaseModel):
     id: int
     name: str
     slug: str
-    price: Decimal
-    status: ProductStatusEnum = ProductStatusEnum.ACTIVE  # Thêm trạng thái
+    # XÓA price field ↓
+    # price: Decimal ← XÓA DÒNG NÀY
+    status: ProductStatusEnum = ProductStatusEnum.ACTIVE
     category: Optional[ProductCategoryResponse]
+    # THÊM các field tính toán giá ↓
+    min_price: Optional[Decimal] = None
+    max_price: Optional[Decimal] = None
+    price_range: Optional[str] = None
     created_at: datetime
     updated_at: datetime
 
@@ -88,9 +95,12 @@ class ProductFullDetailResponse(BaseModel):
     id: int
     name: str
     slug: str
-    price: Decimal
-    status: ProductStatusEnum = ProductStatusEnum.ACTIVE  # Thêm trạng thái
+    status: ProductStatusEnum = ProductStatusEnum.ACTIVE
     category: Optional[ProductCategoryResponse]
+    # THÊM các field tính toán giá ↓
+    min_price: Optional[Decimal] = None
+    max_price: Optional[Decimal] = None
+    price_range: Optional[str] = None
     product_details: List[ProductDetailResponse]
     images: List[ProductImageResponse]
     created_at: datetime

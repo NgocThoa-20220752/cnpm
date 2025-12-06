@@ -9,6 +9,7 @@ from app.enum import RoleEnum, AccountStatusEnum
 from typing import Any
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
+from app.services.cart_service import CartService
 from app.services.order_service import OrderService
 
 security = HTTPBearer()
@@ -121,3 +122,10 @@ def get_admin_or_employee(
 def get_order_service(db: Session = Depends(get_db)) -> OrderService:
     """Dependency for OrderService"""
     return OrderService(db)
+
+def get_cart_service(db: Session = Depends(get_db)) -> CartService:
+    """Dependency for CartService"""
+    return CartService(db)
+
+def get_client_ip(request):
+    return request.client.host

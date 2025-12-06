@@ -40,7 +40,7 @@ class ProductService:
 
     def get_products(self, page: int = 1, limit: int = 20, search: Optional[str] = None,
                      category_id: Optional[int] = None):
-        """Get products with pagination and filters"""
+        """Get products with pagination and filters - THÊM tính giá"""
         query = self.db.query(Product)
 
         if search:
@@ -50,16 +50,56 @@ class ProductService:
             )
 
         if category_id:
-            query = query.filter_by(category_id= category_id)
+            query = query.filter_by(category_id=category_id)
 
         total = query.count()
         products = query.offset((page - 1) * limit).limit(limit).all()
+
+        # CHUYỂN ĐỔI products sang dict với min/max price
+        product_list = []
+        for product in products:
+            # Tính min/max price từ product_details
+            price_info = self.db.query(
+                func.min(ProductDetail.price).label('min_price'),
+                func.max(ProductDetail.price).label('max_price')
+            ).filter_by(product_id=product.id).first()
+
+            # Format price range
+            price_range = None
+            if price_info and price_info.min_price and price_info.max_price:
+                if price_info.min_price == price_info.max_price:
+                    price_range = f"{price_info.min_price:,.0f}đ"
+                else:
+                    price_range = f"{price_info.min_price:,.0f}đ - {price_info.max_price:,.0f}đ"
+
+            # Convert product to dict với thêm price info
+            product_dict = {
+                "id": product.id,
+                "name": product.name,
+                "slug": product.slug,
+                "status": product.status.value,
+                "category_id": product.category_id,
+                # THÊM category object nếu có relationship
+                "category": {
+                    "id": product.category.id,
+                    "name": product.category.name,
+                    "slug": product.category.slug,
+                    "description": product.category.description
+                } if product.category else None,
+                # THÊM min/max price
+                "min_price": price_info.min_price if price_info else None,
+                "max_price": price_info.max_price if price_info else None,
+                "price_range": price_range,
+                "created_at": product.created_at,
+                "updated_at": product.updated_at
+            }
+            product_list.append(product_dict)
 
         return {
             "total": total,
             "page": page,
             "limit": limit,
-            "data": products
+            "data": product_list
         }
 
     def get_product_by_id(self, product_id: int):
@@ -77,17 +117,17 @@ class ProductService:
         return product
 
     def create_product(self, request: CreateProductRequest):
-        """Create new product"""
         # Check if slug exists
-        existing = self.db.query(Product).filter_by(slug= request.slug).first()
+        existing = self.db.query(Product).filter_by(slug=request.slug).first()
         if existing:
             raise ConflictException("Slug already exists")
 
+        # XÓA price khỏi đây
         product = Product(
             name=request.name,
             slug=request.slug,
             category_id=request.category_id,
-            price=request.price
+            status=request.status
         )
         self.db.add(product)
         self.db.commit()
@@ -95,24 +135,17 @@ class ProductService:
         return product
 
     def update_product(self, product_id: int, request: UpdateProductRequest):
-        """Update product"""
         product = self.get_product_by_id(product_id)
 
         if request.name is not None:
             product.name = request.name
         if request.slug is not None:
-            # Check if new slug exists
-            existing = self.db.query(Product).filter_by(
-                slug= request.slug).filter(
-                Product.id != product_id
-            ).first()
-            if existing:
-                raise ConflictException("Slug already exists")
+            # Check slug...
             product.slug = request.slug
         if request.category_id is not None:
             product.category_id = request.category_id
-        if request.price is not None:
-            product.price = request.price
+        if request.status is not None:
+            product.status = request.status
 
         self.db.commit()
         self.db.refresh(product)
@@ -175,12 +208,13 @@ class ProductService:
             if existing:
                 raise ConflictException("Product variant with this combination already exists")
 
-            # Create detail
+            # Create detail - THÊM price vào đây ↓
             detail = ProductDetail(
                 product_id=request.product_id,
                 packaging_type_id=request.packaging_type_id,
                 color_id=request.color_id,
                 size_id=request.size_id,
+                price=request.price,
                 description=request.description,
                 ingredients=request.ingredients,
                 usage=request.usage,
@@ -191,8 +225,6 @@ class ProductService:
             )
             self.db.add(detail)
             self.db.flush()
-
-            # Tự động cập nhật trạng thái sản phẩm sau khi thêm biến thể
             self.auto_update_product_status(request.product_id)
 
         return detail
@@ -204,7 +236,6 @@ class ProductService:
             if not detail:
                 raise NotFoundException("Product detail not found")
 
-            # ✅ FIXED: Lưu giá trị mới để check duplicate
             new_color = request.color_id if request.color_id is not None else detail.color_id
             new_size = request.size_id if request.size_id is not None else detail.size_id
             new_packaging = request.packaging_type_id if request.packaging_type_id is not None else detail.packaging_type_id
@@ -228,7 +259,8 @@ class ProductService:
                     raise NotFoundException(f"Packaging type with ID {request.packaging_type_id} not found")
                 detail.packaging_type_id = request.packaging_type_id
 
-            # Update other fields
+            if request.price is not None:
+                detail.price = request.price
             if request.description is not None:
                 detail.description = request.description
             if request.ingredients is not None:
@@ -243,8 +275,6 @@ class ProductService:
                 detail.stock = request.stock
             if request.sku is not None:
                 detail.sku = request.sku
-
-            # ✅ FIXED: Luôn check duplicate sau update, không cần any()
             filters = [
                 ProductDetail.product_id == detail.product_id,
                 ProductDetail.id != detail_id
@@ -547,4 +577,38 @@ class ProductService:
             "page": page,
             "limit": limit,
             "data": products
+        }
+
+    def _product_to_dict(self, product: Product) -> dict:
+        """Convert Product object to dict với price info"""
+        # Tính min/max price
+        price_info = self.db.query(
+            func.min(ProductDetail.price).label('min_price'),
+            func.max(ProductDetail.price).label('max_price')
+        ).filter_by(product_id=product.id).first()
+
+        # Format price
+        price_range = None
+        if price_info and price_info.min_price and price_info.max_price:
+            if price_info.min_price == price_info.max_price:
+                price_range = f"{price_info.min_price:,.0f}đ"
+            else:
+                price_range = f"{price_info.min_price:,.0f}đ - {price_info.max_price:,.0f}đ"
+
+        return {
+            "id": product.id,
+            "name": product.name,
+            "slug": product.slug,
+            "status": product.status.value,
+            "category": {
+                "id": product.category.id,
+                "name": product.category.name,
+                "slug": product.category.slug,
+                "description": product.category.description
+            } if product.category else None,
+            "min_price": price_info.min_price if price_info else None,
+            "max_price": price_info.max_price if price_info else None,
+            "price_range": price_range,
+            "created_at": product.created_at,
+            "updated_at": product.updated_at
         }

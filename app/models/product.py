@@ -1,4 +1,5 @@
-from sqlalchemy import Column, Integer, String, Text, DECIMAL, ForeignKey, Boolean, JSON, DateTime, Enum as SQLEnum
+from sqlalchemy import Column, Integer, String, Text, DECIMAL, ForeignKey, Boolean, JSON, DateTime, Enum as SQLEnum, \
+    Numeric
 from sqlalchemy.orm import relationship
 from datetime import datetime, timezone
 
@@ -30,8 +31,6 @@ class Product(BaseModel):
     name = Column(String(200), nullable=False)
     slug = Column(String(255), unique=True, nullable=False, index=True)
     category_id = Column(Integer, ForeignKey("categories.id", ondelete="SET NULL"), nullable=True)
-    price = Column(DECIMAL(12, 2), nullable=False)
-    # Thêm trạng thái sản phẩm
     status = Column(SQLEnum(ProductStatusEnum), default=ProductStatusEnum.ACTIVE, nullable=False)
 
     # Relationships
@@ -50,6 +49,7 @@ class ProductDetail(BaseModel):
     packaging_type_id = Column(Integer, ForeignKey("packaging_types.id", ondelete="SET NULL"), nullable=True)
     color_id = Column(Integer, ForeignKey("product_colors.id", ondelete="SET NULL"), nullable=True)
     size_id = Column(Integer, ForeignKey("product_sizes.id", ondelete="SET NULL"), nullable=True)
+    price = Column(Numeric(10, 2), nullable=True)
     description = Column(Text, nullable=True)
     ingredients = Column(Text, nullable=True)
     usage = Column(JSON, nullable=True)
