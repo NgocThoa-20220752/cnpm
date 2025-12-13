@@ -84,12 +84,14 @@ OrderListResponse,
 OrderDetailResponse
 )
 
-from app.schemas.request.ai_req import AIConsultationRequest
+from app.schemas.request.ai_req import AIChatRequest,TestAIRequest
 
 from app.schemas.response.ai_resp import (
-AIConsultationListResponse,
-RecommendedProductResponse,
-AIConsultationResponse
+HealthResponse,
+TestAIResponse,
+ErrorResponse,
+ProductRecommendation,
+AIChatResponse
 )
 
 __all__ = {
@@ -169,12 +171,15 @@ __all__ = {
     "OrderItemProductResponse",
 
     # ai req
-    "AIConsultationRequest",
+    "AIChatRequest",
+    "TestAIRequest",
 
     # ai resp
-    "AIConsultationResponse",
-    "RecommendedProductResponse",
-    "AIConsultationListResponse",
+    "AIChatResponse",
+    "ErrorResponse",
+    "HealthResponse",
+    "TestAIResponse",
+    "ProductRecommendation",
 
 
 
