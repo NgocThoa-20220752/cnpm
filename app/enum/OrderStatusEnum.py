@@ -8,3 +8,9 @@ class OrderStatusEnum(str, Enum):
     DELIVERED = "đã nhận hàng"
     CANCELLED = "đã hủy"
     REFUNDED = "đã hoàn tiền"
+
+    # Thêm trạng thái cho trả hàng
+    RETURN_REQUESTED = "yêu cầu trả hàng"
+    RETURN_APPROVED = "đã chấp nhận trả hàng"
+    RETURN_REJECTED = "từ chối trả hàng"
+    RETURNED = "đã trả hàng"

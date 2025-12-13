@@ -4,7 +4,7 @@ from app.models.ai_consultation import AIConsultation
 from app.models.cart import Cart,CartItem
 from app.models.customer import Customer
 from app.models.employee import Employee
-from app.models.order import Order,OrderItem,ShippingInfo
+from app.models.order import Order,OrderItem
 from app.models.product import Product,ProductSize,ProductColor,ProductImage,ProductDetail
 from app.models.user import User
 
@@ -18,7 +18,6 @@ __all__ =[
     "Employee",
     "Order",
     "OrderItem",
-    "ShippingInfo",
     "Product",
     "ProductSize",
     "ProductImage",

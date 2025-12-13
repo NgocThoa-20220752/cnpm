@@ -43,8 +43,7 @@ httpx==0.25.2
 # Pillow (đã vá CVE)
 pillow>=10.3.0,<11.0.0
 
-# OpenAI + Async IO
-openai==1.3.7
+# Async IO
 aiofiles==23.2.1
 
 # AWS + Stripe
