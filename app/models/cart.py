@@ -20,8 +20,13 @@ class CartItem(BaseModel):
 
     cart_id = Column(Integer, ForeignKey("carts.id", ondelete="CASCADE"), nullable=False)
     product_id = Column(Integer, ForeignKey("products.id", ondelete="CASCADE"), nullable=False)
+    color_id = Column(Integer, ForeignKey('product_colors.id'), nullable=True)
+    size_id = Column(Integer, ForeignKey('product_sizes.id'), nullable=True)
+
     quantity = Column(Integer, default=1, nullable=False)
 
     # Relationships
     cart = relationship("Cart", back_populates="cart_items")
     product = relationship("Product", back_populates="cart_items")
+    color = relationship("ProductColor")
+    size = relationship("ProductSize")

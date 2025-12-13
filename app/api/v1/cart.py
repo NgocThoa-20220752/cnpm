@@ -3,17 +3,19 @@ from typing import cast
 from fastapi import APIRouter, Depends, status, HTTPException
 from sqlalchemy.orm import Session
 from app.core.database import get_db
-from app.schemas.request.cart_req import AddToCartRequest, UpdateCartItemRequest
+from app.schemas.request.cart_req import AddToCartRequest, UpdateCartItemRequest, CheckoutRequest
 from app.schemas.response.cart_resp import CartResponse
 from app.schemas.response.auth_resp import MessageResponse
 from app.services.cart_service import CartService
-from app.Dependencies import get_current_customer
+from app.Dependencies import get_current_customer, get_cart_service, get_order_service
 from app.models.user import User
 from app.models.customer import Customer
-from app.exceptions import NotFoundException, InsufficientStockException
+from app.exceptions import NotFoundException, InsufficientStockException, BadRequestException
+from app.services.order_service import OrderService
 
 router = APIRouter(prefix="/cart", tags=["cart"])
 
+# lấy thông tin customer từ user đã đăng nhập
 def get_current_customer_obj(
     current_user: User = Depends(get_current_customer),
     db: Session = Depends(get_db)
@@ -140,3 +142,42 @@ async def clear_cart(
     """Clear cart"""
     cart_service = CartService(db)
     return cart_service.clear_cart(customer.id)
+
+
+@router.post("/checkout", status_code=status.HTTP_201_CREATED)
+async def checkout_cart(
+        request: CheckoutRequest,
+        current_user: User = Depends(get_current_customer),
+        cart_service: CartService = Depends(get_cart_service),
+        order_service: OrderService = Depends(get_order_service),
+        db: Session = Depends(get_db)
+):
+    """
+    Checkout từ giỏ hàng → tạo đơn hàng
+    """
+    try:
+        print(f"🛒 Checkout request from user {current_user.id}")
+        print(f"📦 Selected items: {request.selected_items}")
+
+        # Gọi checkout TRỰC TIẾP với CheckoutRequest object
+        result = cart_service.checkout(
+            customer_id=current_user.id,
+            checkout_request=request,  # TRUYỀN CheckoutRequest object
+            order_service=order_service
+        )
+
+        print(f"✅ Checkout successful, order created")
+
+        return {
+            "success": True,
+            "message": "Đã tạo đơn hàng thành công",
+            "data": result
+        }
+
+    except BadRequestException as e:
+        print(f"❌ BadRequest: {str(e)}")
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        print(f"❌ Checkout error: {str(e)}")
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Checkout failed: {str(e)}")

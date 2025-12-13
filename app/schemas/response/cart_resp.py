@@ -23,7 +23,9 @@ class CartItemResponse(BaseModel):
     product_id: int
     quantity: int
     product: CartItemProductResponse
-    subtotal: Decimal  # THÊM subtotal
+    subtotal: Decimal
+    color_id: Optional[int] = None
+    size_id: Optional[int] = None
 
     class Config:
         from_attributes = True
