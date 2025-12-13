@@ -5,3 +5,4 @@ class PaymentStatusEnum(str, Enum):
     PAID = "đã thanh toán"
     FAILED = "thanh toán thất bại"
     REFUNDED = "đã hoàn tiền"
+    CANCELLED = "đã hủy"
