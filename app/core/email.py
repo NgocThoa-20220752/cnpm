@@ -115,3 +115,27 @@ class EmailService:
         """
 
         return EmailService.send_email(to_email, subject, html_content)
+
+
+    @staticmethod
+    def send_payment_confirmation_email(to_email: str, username: str, order_code: str, total_amount: float) -> bool:
+        """Send payment confirmation email"""
+        subject = f"Xác nhận thanh toán đơn hàng #{order_code}"
+
+        html_content = f"""
+        <html>
+            <body>
+                <h2>Xin chào {username},</h2>
+                <p>Thanh toán cho đơn hàng #{order_code} đã được xác nhận thành công.</p>
+                <p>Thông tin thanh toán:</p>
+                <ul>
+                    <li>Mã đơn hàng: #{order_code}</li>
+                    <li>Số tiền: {total_amount:,.0f} VNĐ</li>
+                    <li>Trạng thái: Đã thanh toán</li>
+                </ul>
+                <p>Trân trọng,<br>Cosmetics Store Team</p>
+            </body>
+        </html>
+        """
+
+        return EmailService.send_email(to_email, subject, html_content)
